@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Pulse: Clock & Weather</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-glow: #38bdf8;
+            --accent-purple: #a855f7;
+            --weather-glow: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 3rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(to right, var(--accent-glow), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        .search-container {
+            width: 100%;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 16px 24px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 50px;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-container input:focus {
+            border-color: var(--accent-glow);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+        }
+
+        .clock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .clock-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .clock-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-glow);
+        }
+
+        .clock-card.hidden {
+            display: none !important;
+        }
+
+        .city-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .country-name {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .time {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .date {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .weather-box {
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .weather-temp {
+            font-weight: 700;
+            color: var(--weather-glow);
+        }
+
+        /* Modal Settings */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            width: 90%;
+            max-width: 400px;
+            padding: 2rem;
+            position: relative;
+            text-align: center;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1.25rem;
+            right: 1.25rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-city { font-size: 1.8rem; font-weight: 800; }
+        .modal-country { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+        .modal-large-temp { font-size: 3.5rem; font-weight: 800; color: var(--weather-glow); margin: 1rem 0; }
+        .modal-condition { font-size: 1.1rem; color: var(--text-main); margin-bottom: 1.5rem; }
+
+        .modal-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 1rem;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.4);
+            padding: 0.75rem;
+            border-radius: 12px;
+            text-align: left;
+        }
+
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+        .stat-value { font-size: 1rem; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Global Pulse</h1>
+        <p class="subtitle">Live World Clocks & Real-time Weather</p>
+        <div class="search-container">
+            <input type="text" id="search-bar" placeholder="Search any country or city...">
+        </div>
+    </header>
+
+    <main class="clock-grid" id="clock-grid"></main>
+
+    <div class="modal-overlay" id="weather-modal">
+        <div class="modal-content">
+            <button class="close-modal" id="close-modal-btn">&times;</button>
+            <div class="modal-city" id="modal-city-name">--</div>
+            <div class="modal-country" id="modal-country-name">--</div>
+            <div class="modal-large-temp" id="modal-temp">--°C</div>
+            <div class="modal-condition" id="modal-condition">--</div>
+            <div class="modal-stats-grid">
+                <div class="stat-card"><div class="stat-label">Feels Like</div><div class="stat-value" id="stat-feels-like">--</div></div>
+                <div class="stat-card"><div class="stat-label">Humidity</div><div class="stat-value" id="stat-humidity">--</div></div>
+                <div class="stat-card"><div class="stat-label">Wind Speed</div><div class="stat-value" id="stat-wind">--</div></div>
+                <div class="stat-card"><div class="stat-label">UV Index</div><div class="stat-value" id="stat-uv">--</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const locations = [
+            { city: "Sydney", country: "Australia", zone: "Australia/Sydney" },
+            { city: "London", country: "United Kingdom", zone: "Europe/London" },
+            { city: "New York", country: "United States", zone: "America/New_York" },
+            { city: "Tokyo", country: "Japan", zone: "Asia/Tokyo" },
+            { city: "Paris", country: "France", zone: "Europe/Paris" },
+            { city: "Singapore", country: "Singapore", zone: "Asia/Singapore" },
+            { city: "Dubai", country: "UAE", zone: "Asia/Dubai" },
+            { city: "Mumbai", country: "India", zone: "Asia/Kolkata" }
+        ];
+
+        const clockGrid = document.getElementById('clock-grid');
+        const searchBar = document.getElementById('search-bar');
+        const weatherModal = document.getElementById('weather-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        function initGrid() {
+            if (!clockGrid) return;
+            clockGrid.innerHTML = '';
+            
+            locations.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'clock-card';
+                card.setAttribute('data-city', item.city.toLowerCase());
+                card.setAttribute('data-country', item.country.toLowerCase());
+                
+                card.innerHTML = `
+                    <div>
+                        <div class="city-name">${item.city}</div>
+                        <div class="country-name">${item.country}</div>
+                    </div>
+                    <div>
+                        <div class="time" id="time-${index}">--:--:--</div>
+                        <div class="date" id="date-${index}">Syncing...</div>
+                    </div>
+                    <div class="weather-box" id="weather-${index}">
+                        <span>Click for Weather</span>
+                        <span class="weather-temp">➔</span>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => fetchWeather(item.city, item.country, index));
+                clockGrid.appendChild(card);
+            });
+        }
+
+        function tick() {
+            const now = new Date();
+            locations.forEach((item, index) => {
+                try {
+                    const timeEl = document.getElementById(`time-${index}`);
+                    const dateEl = document.getElementById(`date-${index}`);
+                    
+                    if (timeEl) {
+                        timeEl.textContent = new Intl.DateTimeFormat('en-US', {
+                            timeZone: item.zone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+                        }).format(now);
+                    }
+                    if (dateEl) {
+                        dateEl.textContent = new Intl.DateTimeFormat('en-US', {
+                            timeZone: item.zone, weekday: 'short', month: 'short', day: 'numeric'
+                        }).format(now);
+                    }
+                } catch(e) {
+                    console.error("Tick error for index", index, e);
+                }
+            });
+        }
+
+        async function fetchWeather(city, country, index) {
+            const weatherBox = document.getElementById(`weather-${index}`);
+            if (!weatherBox) return;
+            
+            weatherBox.innerHTML = `<span>Loading...</span>`;
+            
+            try {
+                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+                const geoData = await geoRes.json();
+                
+                if (!geoData.results || geoData.results.length === 0) {
+                    weatherBox.innerHTML = `<span>Not found</span>`;
+                    return;
+                }
+                
+                const { latitude, longitude } = geoData.results[0];
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,uv_index`);
+                const weatherData = await weatherRes.json();
+                
+                const currentData = weatherData.current;
+                const temp = Math.round(currentData.temperature_2m);
+                const code = currentData.weather_code;
+
+                let condition = "Clear";
+                if (code > 0 && code <= 3) condition = "Cloudy";
+                if (code >= 51 && code <= 67) condition = "Raining";
+                if (code >= 95) condition = "Stormy";
+
+                weatherBox.innerHTML = `<span>${condition}</span><span class="weather-temp">${temp}°C</span>`;
+
+                document.getElementById('modal-city-name').textContent = city;
+                document.getElementById('modal-country-name').textContent = country;
+                document.getElementById('modal-temp').textContent = `${temp}°C`;
+                document.getElementById('modal-condition').textContent = condition;
+                document.getElementById('stat-feels-like').textContent = `${Math.round(currentData.apparent_temperature)}°C`;
+                document.getElementById('stat-humidity').textContent = `${currentData.relative_humidity_2m}%`;
+                document.getElementById('stat-wind').textContent = `${currentData.wind_speed_10m} km/h`;
+                document.getElementById('stat-uv').textContent = currentData.uv_index;
+
+                weatherModal.classList.add('active');
+            } catch (error) {
+                weatherBox.innerHTML = `<span>Offline</span>`;
+                console.error(error);
+            }
+        }
+
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => weatherModal.classList.remove('active'));
+        }
+
+        if (searchBar) {
+            searchBar.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                document.querySelectorAll('.clock-card').forEach(card => {
+                    const city = card.getAttribute('data-city') || '';
+                    const country = card.getAttribute('data-country') || '';
+                    if (city.includes(query) || country.includes(query)) {
+                        card.classList.remove('hidden');
+                    } else {
+                        card.classList.add('hidden');
+                    }
+                });
+            });
+        }
+
+        // Run immediately on page setup
+        initGrid();
+        tick();
+        setInterval(tick, 1000);
+    </script>
+</body>
+</html>
