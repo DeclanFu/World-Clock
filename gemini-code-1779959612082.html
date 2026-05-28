@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global World Clock</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #38bdf8;
+            --search-bg: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .search-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 1.5rem auto;
+            position: relative;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 12px 20px;
+            background-color: var(--search-bg);
+            border: 2px solid transparent;
+            border-radius: 30px;
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-container input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        }
+
+        .clock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .clock-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .clock-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .clock-card.hidden {
+            display: none;
+        }
+
+        .city-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .country-name {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .time {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            font-variant-numeric: tabular-nums;
+            margin-bottom: 0.5rem;
+        }
+
+        .date {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 1rem; }
+            h1 { font-size: 2rem; }
+            .clock-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>World Clock</h1>
+        <p class="subtitle">Live tracking of major global cities</p>
+        <div class="search-container">
+            <input type="text" id="search-bar" placeholder="Search by city or country...">
+        </div>
+    </header>
+
+    <main class="clock-grid" id="clock-grid">
+        </main>
+
+    <script>
+        // Array of major cities, countries, and their corresponding IANA Time Zones
+        const cities = [
+            { city: "London", country: "United Kingdom", zone: "Europe/London" },
+            { city: "New York", country: "United States", zone: "America/New_York" },
+            { city: "Los Angeles", country: "United States", zone: "America/Los_Angeles" },
+            { city: "Tokyo", country: "Japan", zone: "Asia/Tokyo" },
+            { city: "Paris", country: "France", zone: "Europe/Paris" },
+            { city: "Sydney", country: "Australia", zone: "Australia/Sydney" },
+            { city: "Dubai", country: "UAE", zone: "Asia/Dubai" },
+            { city: "Singapore", country: "Singapore", zone: "Asia/Singapore" },
+            { city: "Hong Kong", country: "China", zone: "Asia/Hong_Kong" },
+            { city: "Mumbai", country: "India", zone: "Asia/Kolkata" },
+            { city: "Cape Town", country: "South Africa", zone: "Africa/Johannesburg" },
+            { city: "Cairo", country: "Egypt", zone: "Africa/Cairo" },
+            { city: "São Paulo", country: "Brazil", zone: "America/Sao_Paulo" },
+            { city: "Mexico City", country: "Mexico", zone: "America/Mexico_City" },
+            { city: "Toronto", country: "Canada", zone: "America/Toronto" },
+            { city: "Seoul", country: "South Korea", zone: "Asia/Seoul" },
+            { city: "Shanghai", country: "China", zone: "Asia/Shanghai" },
+            { city: "Berlin", country: "Germany", zone: "Europe/Berlin" },
+            { city: "Rome", country: "Italy", zone: "Europe/Rome" },
+            { city: "Moscow", country: "Russia", zone: "Europe/Moscow" },
+            { city: "Istanbul", country: "Turkey", zone: "Europe/Istanbul" },
+            { city: "Bangkok", country: "Thailand", zone: "Asia/Bangkok" },
+            { city: "Jakarta", country: "Indonesia", zone: "Asia/Jakarta" },
+            { city: "Nairobi", country: "Kenya", zone: "Africa/Nairobi" },
+            { city: "Lagos", country: "Nigeria", zone: "Africa/Lagos" },
+            { city: "Buenos Aires", country: "Argentina", zone: "America/Argentina/Buenos_Aires" },
+            { city: "Auckland", country: "New Zealand", zone: "Pacific/Auckland" },
+            { city: "Riyadh", country: "Saudi Arabia", zone: "Asia/Riyadh" },
+            { city: "Zürich", country: "Switzerland", zone: "Europe/Zurich" },
+            { city: "Honolulu", country: "United States", zone: "Pacific/Honolulu" }
+        ];
+
+        const clockGrid = document.getElementById('clock-grid');
+        const searchBar = document.getElementById('search-bar');
+
+        // Function to create card elements in the DOM
+        function createClockCards() {
+            cities.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'clock-card';
+                card.setAttribute('data-city', item.city.toLowerCase());
+                card.setAttribute('data-country', item.country.toLowerCase());
+                
+                card.innerHTML = `
+                    <div class="city-name">${item.city}</div>
+                    <div class="country-name">${item.country}</div>
+                    <div class="time" id="time-${index}">00:00:00</div>
+                    <div class="date" id="date-${index}">Loading...</div>
+                `;
+                clockGrid.appendChild(card);
+            });
+        }
+
+        // Function to update times across all cards
+        function updateClocks() {
+            const now = new Date();
+            
+            cities.forEach((item, index) => {
+                try {
+                    // Format Time
+                    const timeOptions = {
+                        timeZone: item.zone,
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
+                    };
+                    const timeString = new Intl.DateTimeFormat('en-US', timeOptions).format(now);
+                    document.getElementById(`time-${index}`).textContent = timeString;
+
+                    // Format Date
+                    const dateOptions = {
+                        timeZone: item.zone,
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    };
+                    const dateString = new Intl.DateTimeFormat('en-US', dateOptions).format(now);
+                    document.getElementById(`date-${index}`).textContent = dateString;
+                } catch (e) {
+                    console.error(`Error formatting time for zone: ${item.zone}`, e);
+                }
+            });
+        }
+
+        // Live filtering search logic
+        searchBar.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.clock-card');
+
+            cards.forEach(card => {
+                const city = card.getAttribute('data-city');
+                const country = card.getAttribute('data-country');
+                
+                if (city.includes(query) || country.includes(query)) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        });
+
+        // Initialize App
+        createClockCards();
+        updateClocks();
+        setInterval(updateClocks, 1000); // Update every single second
+    </script>
+</body>
+</html>
